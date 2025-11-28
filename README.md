@@ -42,12 +42,20 @@ export default defineConfig({
     [
       'playwright-pdf-reporter',
       {
-        outputDir: './reports',
-        fileName: 'release-smoke.pdf',
+        outputDir: 'playwright-report/pdf',
+        fileName: 'test-report.pdf',
         theme: 'dark',
         includeScreenshots: true,
-        historicalDataPath: './reports/history.json',
-        reportType: 'full'
+        includeHtml: true,
+        historicalDataPath: 'playwright-report/pdf/history.json',
+        reportType: 'full',
+        trendLabel: 'Release Train',
+        metadata: {
+          title: 'Release Smoke',
+          project: 'Checkout Platform',
+          author: 'QA Guild',
+          build: process.env.BUILD_ID
+        }
       }
     ]
   ]
