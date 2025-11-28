@@ -25,7 +25,7 @@
   "homepage": "https://github.com/example/playwright-pdf-reporter#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/example/playwright-pdf-reporter.git"
+    "url": "git+https://github.com/example/playwright-pdf-reporter.git"
   },
   "bugs": {
     "url": "https://github.com/example/playwright-pdf-reporter/issues"
@@ -68,5 +68,9 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     }
+  },
+  "directories": {
+    "example": "examples",
+    "test": "tests"
   }
 }
