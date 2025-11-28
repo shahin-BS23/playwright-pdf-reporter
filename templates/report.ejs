@@ -418,7 +418,6 @@
               <th>Test</th>
               <th>Status</th>
               <th>Duration</th>
-              <th>Annotations</th>
             </tr>
           </thead>
           <tbody>
@@ -457,11 +456,6 @@
                   </span>
                 </td>
                 <td><%= helpers.formatDuration(test.duration) %></td>
-                <td>
-                  <% Object.entries(test.annotations).forEach(([key, value]) => { %>
-                    <span class="chip"><%= key %>: <%= value %></span>
-                  <% }) %>
-                </td>
               </tr>
             <% }) %>
           </tbody>
@@ -703,7 +697,7 @@
           ];
 
           new Chart(statusCtx, {
-            type: 'doughnut',
+            type: 'pie',
             data: {
               labels: statusSeries.map((entry) => entry.label),
               datasets: [

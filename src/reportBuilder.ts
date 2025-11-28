@@ -47,20 +47,28 @@ export const buildReportData = (
 
 const computeSummary = (cases: CaseDetail[]): SummaryStats => {
   const total = cases.length;
-  const passed = cases.filter((c) => c.status === 'passed').length;
-  const failed = cases.filter((c) => c.status === 'failed' || c.status === 'timedOut').length;
-  const skipped = cases.filter((c) => c.status === 'skipped').length;
-  const flaky = cases.filter((c) => {
-    if (c.annotations['flaky']) {
+
+  const isFlaky = (testCase: CaseDetail): boolean => {
+    if (testCase.annotations['flaky']) {
       return true;
     }
-    if (!c.attempts || c.attempts.length < 2) {
+    if (!testCase.attempts || testCase.attempts.length < 2) {
       return false;
     }
-    const latest = c.attempts[c.attempts.length - 1];
-    const hadFailure = c.attempts.some((attempt) => attempt.status === 'failed');
+    const latest = testCase.attempts[testCase.attempts.length - 1];
+    const hadFailure = testCase.attempts.some((attempt) => attempt.status === 'failed');
     return latest?.status === 'passed' && hadFailure;
-  }).length;
+  };
+
+  const flakyCases = cases.filter(isFlaky);
+  const flakyIds = new Set(flakyCases.map((c) => c.id));
+
+  const passed = cases.filter((c) => c.status === 'passed').length;
+  const failed = cases.filter(
+    (c) => !flakyIds.has(c.id) && (c.status === 'failed' || c.status === 'timedOut')
+  ).length;
+  const skipped = cases.filter((c) => c.status === 'skipped').length;
+  const flaky = flakyCases.length;
   const durationMs = cases.reduce((acc, c) => acc + (c.duration || 0), 0);
   const startTime = Math.min(...cases.map((c) => c.startedAt ?? Date.now()));
   const endTime = Math.max(...cases.map((c) => c.completedAt ?? Date.now()));
