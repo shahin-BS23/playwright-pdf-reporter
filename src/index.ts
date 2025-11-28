@@ -200,19 +200,41 @@ type RawStep = {
   steps?: RawStep[];
 };
 
+const HOOK_KEYWORDS = ['beforeall', 'afterall', 'beforeeach', 'aftereach'];
+const IGNORED_STEP_CATEGORIES = new Set(['hook', 'fixture']);
+
 const extractSteps = (result: TestResult): StepDetail[] => {
   const rawSteps = (result as unknown as { steps?: RawStep[] }).steps;
   if (!Array.isArray(rawSteps)) {
     return [];
   }
-  const toStep = (step: RawStep): StepDetail => ({
-    title: step.title,
-    status: step.error ? 'failed' : 'passed',
-    category: step.category,
-    duration: step.duration,
-    steps: Array.isArray(step.steps) ? step.steps.map(toStep) : []
-  });
-  return rawSteps.map(toStep);
+
+  const shouldIgnore = (step: RawStep): boolean => {
+    const category = step.category?.toLowerCase();
+    if (category && IGNORED_STEP_CATEGORIES.has(category)) {
+      return true;
+    }
+    const normalizedTitle = step.title?.toLowerCase() ?? '';
+    return HOOK_KEYWORDS.some((keyword) => normalizedTitle.includes(keyword));
+  };
+
+  const toStepList = (step: RawStep): StepDetail[] => {
+    const childSteps = Array.isArray(step.steps) ? step.steps.flatMap(toStepList) : [];
+    if (shouldIgnore(step)) {
+      return childSteps;
+    }
+    return [
+      {
+        title: step.title,
+        status: step.error ? 'failed' : 'passed',
+        category: step.category,
+        duration: step.duration,
+        steps: childSteps
+      }
+    ];
+  };
+
+  return rawSteps.flatMap(toStepList);
 };
 
 const deriveIssueLink = (error: TestResult['errors'][number], base?: string): string | undefined => {
