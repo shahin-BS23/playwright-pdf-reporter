@@ -32,7 +32,8 @@ export const renderReportHtml = async (report: ReportData): Promise<string> => {
       formatNumber,
       renderSteps: (steps: StepDetail[]) => renderStepTree(steps),
       escapeHtml,
-      renderErrorMessage
+      renderErrorMessage,
+      hasNestedSteps
     }
   });
 };
@@ -45,26 +46,37 @@ const escapeHtml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;') ?? '';
 
-const renderStepTree = (steps: StepDetail[]): string => {
+const STEP_ICONS: Array<{ passed: string; failed: string }> = [
+  { passed: '⬤', failed: '✖' },
+  { passed: '↳', failed: '⚠' },
+  { passed: '·', failed: '!' }
+];
+
+const iconFor = (status: StepDetail['status'], depth: number): string => {
+  const palette = STEP_ICONS[Math.min(depth, STEP_ICONS.length - 1)];
+  return status === 'failed' ? palette.failed : palette.passed;
+};
+
+const renderStepTree = (steps: StepDetail[], depth = 0): string => {
   if (!steps || !steps.length) {
     return '';
   }
-  const build = (nodes: StepDetail[]): string =>
+  const build = (nodes: StepDetail[], level: number): string =>
     nodes
       .map((node) => {
-        const icon = node.status === 'failed' ? '❌' : '✅';
+        const icon = iconFor(node.status, level);
         const category = node.category ? ` <span class="step-category">(${escapeHtml(node.category)})</span>` : '';
         const duration =
           typeof node.duration === 'number' && node.duration > 0
             ? ` <span class="step-duration">${escapeHtml(formatDuration(node.duration))}</span>`
             : '';
         const children =
-          node.steps && node.steps.length ? `<ul class="steps-tree">${build(node.steps)}</ul>` : '';
+          node.steps && node.steps.length ? `<ul class="steps-tree">${build(node.steps, level + 1)}</ul>` : '';
         return `<li><span class="step-node step-${node.status}">${icon} ${escapeHtml(node.title)}${category}${duration}</span>${children}</li>`;
       })
       .join('');
 
-  return `<ul class="steps-tree">${build(steps)}</ul>`;
+  return `<ul class="steps-tree">${build(steps, depth)}</ul>`;
 };
 
 const renderErrorMessage = (message?: string): string => {
@@ -88,4 +100,7 @@ const renderErrorMessage = (message?: string): string => {
     .join('<br />');
   return html;
 };
+
+const hasNestedSteps = (steps: StepDetail[]): boolean =>
+  Array.isArray(steps) && steps.some((step) => Array.isArray(step.steps) && step.steps.length > 0);
 
