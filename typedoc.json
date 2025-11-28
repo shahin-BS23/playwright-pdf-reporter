@@ -1,0 +1,9 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "tsconfig": "tsconfig.build.json",
+  "name": "Playwright PDF Reporter",
+  "excludeExternals": true,
+  "excludePrivate": true
+}
+

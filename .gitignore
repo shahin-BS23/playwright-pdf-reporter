@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+coverage/
+reports/
+
+# Playwright artifacts
+test-results/
+playwright-report/
+*.log
+
+# Temp files
+.DS_Store
+Thumbs.db
+*.tmp
+tmp/
+
+# IDE / tooling
+.idea/
+.vscode/
+*.swp
+
+# Example run artifacts
+examples/**/reports/
+examples/**/test-results/
+
