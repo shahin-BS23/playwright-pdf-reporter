@@ -161,7 +161,6 @@
       .chart-compact {
         width: 220px;
         height: 220px;
-        max-width: 220px;
         min-width: 220px;
         margin: 0 auto;
         aspect-ratio: 1 / 1;
@@ -696,20 +695,53 @@
 
         const statusCtx = document.getElementById('statusChart');
         if (statusCtx) {
+          const statusSeries = [
+            { label: 'Passed', value: Number(summary.passed) || 0, color: '#22c55e' },
+            { label: 'Failed', value: Number(summary.failed) || 0, color: '#ef4444' },
+            { label: 'Skipped', value: Number(summary.skipped) || 0, color: '#94a3b8' },
+            { label: 'Flaky', value: Number(summary.flaky) || 0, color: '#a855f7' }
+          ];
+
           new Chart(statusCtx, {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-              labels: ['Passed', 'Failed', 'Skipped', 'Flaky'],
+              labels: statusSeries.map((entry) => entry.label),
               datasets: [
                 {
-                  data: [summary.passed, summary.failed, summary.skipped, summary.flaky],
-                  backgroundColor: ['#22c55e', '#ef4444', '#94a3b8', '#a855f7']
+                  data: statusSeries.map((entry) => entry.value),
+                  backgroundColor: statusSeries.map((entry) => entry.color),
+                  borderWidth: 2,
+                  borderColor: 'var(--card)'
                 }
               ]
             },
             options: {
+              cutout: '65%',
               plugins: {
-                legend: { position: 'bottom' }
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    generateLabels(chart) {
+                      return statusSeries.map((entry, index) => ({
+                        text: `${entry.label} (${entry.value})`,
+                        fillStyle: entry.color,
+                        strokeStyle: entry.color,
+                        lineWidth: 0,
+                        index
+                      }));
+                    }
+                  }
+                },
+                tooltip: {
+                  callbacks: {
+                    label(context) {
+                      const entry = statusSeries[context.dataIndex];
+                      const total = statusSeries.reduce((acc, item) => acc + item.value, 0) || 1;
+                      const percent = ((entry.value / total) * 100).toFixed(1);
+                      return `${entry.label}: ${entry.value} (${percent}%)`;
+                    }
+                  }
+                }
               }
             }
           });
