@@ -12,6 +12,8 @@ Generate rich PDF artifacts from your Playwright test runs with zero manual effo
 - **Historical Insights** – Feed previous runs to highlight trends and stability.
 - **TypeScript Native** – First-class typings plus CommonJS output for compatibility.
 - **CI-friendly** – Deterministic outputs, metadata tags, PDF metadata, HTML artifact optional.
+- **Nested Step Trees** – Captures Playwright step hierarchy, rendered identically in HTML & PDF.
+- **Retry Timeline** – Each attempt (with failure screenshots) is summarized so flaky tests stand out.
 
 ## 📦 Installation
 
@@ -35,7 +37,7 @@ npm install @playwright/test --save-dev
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  reporters: [
+  reporter: [
     ['list'],
     [
       'playwright-pdf-reporter',
@@ -68,18 +70,23 @@ Upon completion you’ll find:
 
 | Option               | Type                 | Default                     | Description                                                                 |
 | -------------------- | -------------------- | --------------------------- | --------------------------------------------------------------------------- |
-| `outputDir`          | `string`             | `reports/pdf`               | Destination directory for report artifacts                                  |
-| `fileName`           | `string`             | `playwright-test-report.pdf`| PDF file name (forced `.pdf` extension)                                     |
+| `outputDir`          | `string`             | `playwright-report/pdf`     | Destination directory for report artifacts                                  |
+| `fileName`           | `string`             | `test-report.pdf`           | PDF file name (forced `.pdf` extension)                                     |
 | `theme`              | `'light' \| 'dark'`  | `light`                     | Report theme                                                                |
 | `includeScreenshots` | `boolean`            | `true`                      | Embed screenshot attachments as inline base64 images                        |
 | `includeHtml`        | `boolean`            | `true`                      | Persist the intermediate HTML dashboard                                     |
-| `historicalDataPath` | `string`             | `undefined`                 | JSON file used to plot historical trends                                    |
+| `historicalDataPath` | `string`             | `playwright-report/pdf/history.json` | JSON file used to plot historical trends                         |
 | `reportType`         | `'summary' \| 'execution' \| 'defect' \| 'full'` | `full` | Controls sections included in the report                                    |
 | `metadata`           | `ReportMetadata`     | `{}`                        | Title, author, build, project, tags, etc.                                   |
 | `scope`              | `TestScope`          | defaults provided           | Objectives, datasets, criteria, risks, alignment                            |
 | `customSections`     | `CustomSections`     | defaults provided           | Challenges, lessons learned, recommendations                                |
 | `bugTrackerBaseUrl`  | `string`             | `undefined`                 | Prefix when auto-linking `#123` references in error stacks                  |
 | `trendLabel`         | `string`             | `Overall`                   | Label applied to trend charts                                               |
+
+### Steps & Retries Included
+
+- Playwright step hierarchies (including nested steps) are captured per attempt and rendered inline so both HTML and PDF stay in sync.
+- Retries are summarized in their own section showing every attempt, status, duration, and failure screenshots, making flaky behavior easy to inspect.
 
 See `src/types.ts` for the full contract.
 

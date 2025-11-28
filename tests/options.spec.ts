@@ -5,10 +5,11 @@ import { resolveOptions } from '../src/options';
 describe('resolveOptions', () => {
   it('applies defaults when no options provided', () => {
     const result = resolveOptions();
-    expect(result.outputDir).toBe(path.normalize('reports/pdf'));
-    expect(result.fileName).toBe('playwright-test-report.pdf');
+    expect(result.outputDir).toBe(path.normalize('playwright-report/pdf'));
+    expect(result.fileName).toBe('test-report.pdf');
     expect(result.includeScreenshots).toBe(true);
     expect(result.reportType).toBe('full');
+    expect(result.historicalDataPath).toBe(path.normalize('playwright-report/pdf/history.json'));
   });
 
   it('normalizes file names and merges nested objects', () => {

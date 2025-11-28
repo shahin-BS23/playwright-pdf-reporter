@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildReportData } from '../src/reportBuilder';
-import { ReporterOptionsResolved, CaseDetail } from '../src/types';
+import { ReporterOptionsResolved, CaseDetail, StepDetail } from '../src/types';
 
 const options = {
   outputDir: 'reports',
@@ -15,6 +15,13 @@ const options = {
   customSections: {}
 } as ReporterOptionsResolved;
 
+const step = (title: string, overrides: Partial<StepDetail> = {}): StepDetail => ({
+  title,
+  status: 'passed',
+  steps: [],
+  ...overrides
+});
+
 const mockCases: CaseDetail[] = [
   {
     id: 'case-1',
@@ -24,9 +31,21 @@ const mockCases: CaseDetail[] = [
     duration: 1200,
     projectName: 'chromium',
     annotations: {},
-    steps: [],
+    steps: [step('root')],
     attachments: [],
     errors: [],
+    attempts: [
+      {
+        index: 0,
+        status: 'passed',
+        duration: 1200,
+        steps: [step('root')],
+        attachments: [],
+        errors: [],
+        startedAt: Date.now(),
+        completedAt: Date.now()
+      }
+    ],
     startedAt: Date.now(),
     completedAt: Date.now()
   },
@@ -38,7 +57,7 @@ const mockCases: CaseDetail[] = [
     duration: 900,
     projectName: 'chromium',
     annotations: {},
-    steps: [],
+    steps: [step('root', { status: 'failed' })],
     attachments: [],
     errors: [
       {
@@ -46,6 +65,24 @@ const mockCases: CaseDetail[] = [
         category: 'performance',
         severity: 'high'
       } as any
+    ],
+    attempts: [
+      {
+        index: 0,
+        status: 'failed',
+        duration: 900,
+        steps: [step('root', { status: 'failed' })],
+        attachments: [],
+        errors: [
+          {
+            message: 'Timeout',
+            category: 'performance',
+            severity: 'high'
+          } as any
+        ],
+        startedAt: Date.now(),
+        completedAt: Date.now()
+      }
     ],
     startedAt: Date.now(),
     completedAt: Date.now()
@@ -78,6 +115,54 @@ describe('buildReportData', () => {
     const report = buildReportData(mockCases, undefined, options, [], history);
     expect(report.history).toHaveLength(1);
     expect(report.history[0].passed).toBe(9);
+  });
+
+  it('marks tests as flaky when retries pass after a failure', () => {
+    const flakyCase: CaseDetail = {
+      id: 'case-3',
+      title: 'flaky test',
+      path: 'suite › flaky',
+      status: 'passed',
+      duration: 2000,
+      projectName: 'chromium',
+      annotations: {},
+      steps: [step('final')],
+      attachments: [],
+      errors: [],
+      attempts: [
+        {
+          index: 0,
+          status: 'failed',
+          duration: 1000,
+          steps: [step('attempt-1', { status: 'failed' })],
+          attachments: [],
+          errors: [
+            {
+              message: 'boom',
+              category: 'functional',
+              severity: 'high'
+            } as any
+          ],
+          startedAt: Date.now(),
+          completedAt: Date.now()
+        },
+        {
+          index: 1,
+          status: 'passed',
+          duration: 1000,
+          steps: [step('attempt-2')],
+          attachments: [],
+          errors: [],
+          startedAt: Date.now(),
+          completedAt: Date.now()
+        }
+      ],
+      startedAt: Date.now(),
+      completedAt: Date.now()
+    };
+
+    const report = buildReportData([...mockCases, flakyCase], undefined, options, [], []);
+    expect(report.summary.flaky).toBeGreaterThanOrEqual(1);
   });
 });
 

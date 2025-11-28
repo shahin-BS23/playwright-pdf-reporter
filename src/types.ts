@@ -58,6 +58,25 @@ export interface AttachmentSummary {
   body?: string;
 }
 
+export interface StepDetail {
+  title: string;
+  status: 'passed' | 'failed';
+  category?: string;
+  duration?: number;
+  steps: StepDetail[];
+}
+
+export interface AttemptDetail {
+  index: number;
+  status: TestStatus;
+  duration: number;
+  steps: StepDetail[];
+  attachments: AttachmentSummary[];
+  errors: ParsedError[];
+  startedAt?: number;
+  completedAt?: number;
+}
+
 export interface CaseDetail {
   id: string;
   title: string;
@@ -67,9 +86,10 @@ export interface CaseDetail {
   projectName: string;
   location?: string;
   annotations: Record<string, string>;
-  steps: string[];
+  steps: StepDetail[];
   attachments: AttachmentSummary[];
   errors: ParsedError[];
+  attempts: AttemptDetail[];
   startedAt?: number;
   completedAt?: number;
 }

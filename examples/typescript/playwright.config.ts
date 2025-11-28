@@ -16,7 +16,7 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] }
     }
   ],
-  reporters: [
+  reporter: [
     ['list'],
     [
       'playwright-pdf-reporter',

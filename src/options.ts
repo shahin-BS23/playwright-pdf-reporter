@@ -2,13 +2,13 @@ import path from 'path';
 import { ReporterOptions, ReporterOptionsResolved } from './types';
 
 const defaultOptions: ReporterOptionsResolved = {
-  outputDir: 'reports/pdf',
-  fileName: 'playwright-test-report.pdf',
+  outputDir: 'playwright-report/pdf',
+  fileName: 'test-report.pdf',
   theme: 'light',
   includeScreenshots: true,
   includeHtml: true,
   reportType: 'full',
-  historicalDataPath: undefined,
+  historicalDataPath: 'playwright-report/pdf/history.json',
   trendLabel: 'Overall',
   metadata: {},
   scope: {},
@@ -35,6 +35,11 @@ export const resolveOptions = (options?: ReporterOptions): ReporterOptionsResolv
   };
 
   merged.outputDir = path.normalize(merged.outputDir || defaultOptions.outputDir);
+  if (merged.historicalDataPath) {
+    merged.historicalDataPath = path.normalize(merged.historicalDataPath);
+  } else if (defaultOptions.historicalDataPath) {
+    merged.historicalDataPath = path.normalize(defaultOptions.historicalDataPath);
+  }
 
   if (!merged.fileName?.toLowerCase().endsWith('.pdf')) {
     merged.fileName = `${(merged.fileName ?? defaultOptions.fileName).replace(/\.pdf$/i, '')}.pdf`;

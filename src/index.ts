@@ -1,12 +1,17 @@
 import path from 'path';
 import {
   AttachmentSummary,
+  AttemptDetail,
   CaseDetail,
+  FailureCategory,
+  FailureSeverity,
   FullConfig,
   FullResult,
+  ParsedError,
   Reporter,
   ReporterOptions,
   ReporterOptionsResolved,
+  StepDetail,
   Suite,
   TestCase,
   TestResult,
@@ -25,6 +30,7 @@ export default class PlaywrightPdfReporter implements Reporter {
   private config?: FullConfig;
   private suite?: Suite;
   private readonly cases: CaseDetail[] = [];
+  private readonly caseMap = new Map<string, CaseDetail>();
   private readonly warnings: string[] = [];
 
   constructor(options?: ReporterOptions) {
@@ -37,8 +43,16 @@ export default class PlaywrightPdfReporter implements Reporter {
   }
 
   async onTestEnd(test: TestCase, result: TestResult): Promise<void> {
-    const detail = await this.toCaseDetail(test, result);
-    this.cases.push(detail);
+    const key = this.caseKey(test);
+    const attempt = await this.toAttemptDetail(test, result);
+    let existing = this.caseMap.get(key);
+    if (!existing) {
+      existing = this.initializeCaseDetail(test, attempt);
+      this.caseMap.set(key, existing);
+      this.cases.push(existing);
+    } else {
+      this.mergeAttempt(existing, attempt);
+    }
   }
 
   async onEnd(result: FullResult): Promise<void> {
@@ -75,32 +89,66 @@ export default class PlaywrightPdfReporter implements Reporter {
     console.log(`playwright-pdf-reporter: PDF generated at ${pdfPath}`);
   }
 
-  private async toCaseDetail(test: TestCase, result: TestResult): Promise<CaseDetail> {
-    const id = slugify(test.titlePath().join('-')) || `case-${this.cases.length + 1}`;
-    const attachments = await this.collectAttachments(result);
+  private caseKey(test: TestCase): string {
+    return test.id ?? slugify(test.titlePath().join('-'));
+  }
+
+  private buildCaseId(test: TestCase): string {
+    return slugify(test.titlePath().join('-')) || `case-${this.cases.length + 1}`;
+  }
+
+  private initializeCaseDetail(test: TestCase, attempt: AttemptDetail): CaseDetail {
     return {
-      id,
+      id: this.buildCaseId(test),
       title: test.title,
       path: test.titlePath().join(' › '),
-      status: mapStatus(result.status),
-      duration: result.duration,
+      status: attempt.status,
+      duration: attempt.duration,
       projectName: test.parent?.project()?.name ?? 'default',
       location: test.location?.file ? `${test.location.file}:${test.location.line}` : undefined,
       annotations: Object.fromEntries(
         test.annotations.map((annotation) => [annotation.type, annotation.description ?? ''])
       ),
+      steps: attempt.steps,
+      attachments: attempt.attachments,
+      errors: attempt.errors,
+      attempts: [attempt],
+      startedAt: attempt.startedAt,
+      completedAt: attempt.completedAt
+    };
+  }
+
+  private mergeAttempt(detail: CaseDetail, attempt: AttemptDetail): void {
+    detail.duration += attempt.duration;
+    detail.attempts.push(attempt);
+    detail.attempts.sort((a, b) => a.index - b.index);
+    const latest = detail.attempts[detail.attempts.length - 1];
+    detail.status = latest.status;
+    detail.steps = latest.steps;
+    detail.attachments = latest.attachments;
+    detail.errors = latest.errors;
+    detail.startedAt =
+      detail.startedAt !== undefined && attempt.startedAt !== undefined
+        ? Math.min(detail.startedAt, attempt.startedAt)
+        : detail.startedAt ?? attempt.startedAt;
+    detail.completedAt =
+      detail.completedAt !== undefined && attempt.completedAt !== undefined
+        ? Math.max(detail.completedAt, attempt.completedAt)
+        : detail.completedAt ?? attempt.completedAt;
+  }
+
+  private async toAttemptDetail(test: TestCase, result: TestResult): Promise<AttemptDetail> {
+    const attachments = await this.collectAttachments(result);
+    return {
+      index: result.retry ?? 0,
+      status: mapStatus(result.status),
+      duration: result.duration,
       steps: extractSteps(result),
       attachments,
-      errors: (result.errors ?? []).map((error) => ({
-        message: error.message ?? 'Unknown error',
-        stack: error.stack,
-        value: error,
-        issueLink: deriveIssueLink(error, this.options.bugTrackerBaseUrl),
-        category: categorizeFailure(error),
-        severity: classifySeverity(error)
-      })),
+      errors: mapErrors(result, this.options.bugTrackerBaseUrl),
       startedAt: result.startTime?.getTime(),
-      completedAt: result.startTime && result.duration ? result.startTime.getTime() + result.duration : undefined
+      completedAt:
+        result.startTime && result.duration ? result.startTime.getTime() + result.duration : undefined
     };
   }
 
@@ -129,20 +177,42 @@ export default class PlaywrightPdfReporter implements Reporter {
   }
 }
 
+const mapErrors = (result: TestResult, bugTrackerBaseUrl?: string): ParsedError[] =>
+  (result.errors ?? []).map((error) => ({
+    message: error.message ?? 'Unknown error',
+    stack: error.stack,
+    value: error,
+    issueLink: deriveIssueLink(error, bugTrackerBaseUrl),
+    category: categorizeFailure(error),
+    severity: classifySeverity(error)
+  }));
+
 const mapStatus = (status: TestStatus | undefined): TestStatus => {
   if (status === 'timedOut') return 'failed';
   return status ?? 'skipped';
 };
 
-const extractSteps = (result: TestResult): string[] => {
-  const rawSteps = (result as unknown as { steps?: Array<{ title: string; category?: string; error?: TestResult['errors']; duration?: number }> }).steps;
+type RawStep = {
+  title: string;
+  category?: string;
+  duration?: number;
+  error?: unknown;
+  steps?: RawStep[];
+};
+
+const extractSteps = (result: TestResult): StepDetail[] => {
+  const rawSteps = (result as unknown as { steps?: RawStep[] }).steps;
   if (!Array.isArray(rawSteps)) {
     return [];
   }
-  return rawSteps.map((step) => {
-    const status = step.error ? '❌' : '✅';
-    return `${status} ${step.title}${step.category ? ` (${step.category})` : ''}`;
+  const toStep = (step: RawStep): StepDetail => ({
+    title: step.title,
+    status: step.error ? 'failed' : 'passed',
+    category: step.category,
+    duration: step.duration,
+    steps: Array.isArray(step.steps) ? step.steps.map(toStep) : []
   });
+  return rawSteps.map(toStep);
 };
 
 const deriveIssueLink = (error: TestResult['errors'][number], base?: string): string | undefined => {
@@ -154,7 +224,7 @@ const deriveIssueLink = (error: TestResult['errors'][number], base?: string): st
   return `${base.replace(/\/$/, '')}/${match[1]}`;
 };
 
-const categorizeFailure = (error: TestResult['errors'][number]) => {
+const categorizeFailure = (error: TestResult['errors'][number]): FailureCategory => {
   const message = error?.message ?? '';
   if (/timeout/i.test(message)) return 'performance';
   if (/not found|selector/i.test(message)) return 'functional';
@@ -163,7 +233,7 @@ const categorizeFailure = (error: TestResult['errors'][number]) => {
   return 'unknown';
 };
 
-const classifySeverity = (error: TestResult['errors'][number]) => {
+const classifySeverity = (error: TestResult['errors'][number]): FailureSeverity => {
   if (!error?.message) return 'medium';
   if (/critical|crash|data loss/i.test(error.message)) return 'critical';
   if (/timeout|not found|detached/i.test(error.message)) return 'high';

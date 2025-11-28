@@ -17,7 +17,7 @@ const config = {
       use: { ...devices['Desktop Chrome'] }
     }
   ],
-  reporters: [
+  reporter: [
     ['list'],
     [
       'playwright-pdf-reporter',
