@@ -8,8 +8,8 @@ export const loadChartBundle = async (): Promise<string> => {
     return cachedChartBundle;
   }
 
-  const chartPackageJson = require.resolve('chart.js/package.json');
-  const chartPath = path.resolve(path.dirname(chartPackageJson), 'dist', 'chart.umd.js');
+  const chartEntry = require.resolve('chart.js');
+  const chartPath = path.resolve(path.dirname(chartEntry), 'chart.umd.js');
   cachedChartBundle = await fs.readFile(chartPath, 'utf-8');
   return cachedChartBundle;
 };
