@@ -426,9 +426,21 @@
                 <td>
                   <strong><%= test.title %></strong>
                   <p class="muted"><%= test.path %></p>
-                  <% const hasSteps = test.steps && test.steps.length; %>
-                  <% const showNestedSteps = hasSteps && helpers.hasNestedSteps(test.steps); %>
-                  <% if (hasSteps) { %>
+                </td>
+                <td>
+                  <span class="status-pill <%= test.status === 'passed' ? 'pass' : test.status === 'skipped' ? 'skip' : 'fail' %>">
+                    <%= test.status %>
+                  </span>
+                </td>
+                <td>
+                  <%= helpers.formatDuration(test.duration) %>
+                </td>
+              </tr>
+              <% const hasSteps = test.steps && test.steps.length; %>
+              <% const showNestedSteps = hasSteps && helpers.hasNestedSteps(test.steps); %>
+              <% if (hasSteps) { %>
+                <tr>
+                  <td colspan="3">
                     <details class="steps-details" open>
                       <summary>Steps</summary>
                       <div class="steps-wrapper">
@@ -438,7 +450,9 @@
                           <ul class="steps-list">
                             <% test.steps.forEach(step => { %>
                               <li>
-                                <span class="step-node step-<%= step.status %>"><%= step.status === 'failed' ? '✖' : '✓' %> <%= step.title %></span>
+                                <span class="step-node step-<%= step.status %>">
+                                  <%= step.status === 'failed' ? '✖' : '✓' %> <%= step.title %>
+                                </span>
                                 <% if (step.duration) { %>
                                   <span class="step-duration"><%= helpers.formatDuration(step.duration) %></span>
                                 <% } %>
@@ -448,15 +462,9 @@
                         <% } %>
                       </div>
                     </details>
-                  <% } %>
-                </td>
-                <td>
-                  <span class="status-pill <%= test.status === 'passed' ? 'pass' : test.status === 'skipped' ? 'skip' : 'fail' %>">
-                    <%= test.status %>
-                  </span>
-                </td>
-                <td><%= helpers.formatDuration(test.duration) %></td>
-              </tr>
+                  </td>
+                </tr>
+              <% } %>
             <% }) %>
           </tbody>
         </table>
