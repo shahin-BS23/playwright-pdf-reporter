@@ -1,6 +1,6 @@
 {
   "name": "playwright-pdf-reporter",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Playwright reporter that turns rich HTML summaries into polished PDF reports.",
   "author": "Playwright PDF Reporter Authors",
   "license": "MIT",
