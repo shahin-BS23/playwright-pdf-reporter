@@ -24,6 +24,7 @@ export interface ReporterOptions {
   customSections?: CustomSections;
   trendLabel?: string;
   bugTrackerBaseUrl?: string;
+  fastMode?: boolean;
 }
 
 export interface ReportMetadata {
@@ -170,6 +171,7 @@ export interface ReporterOptionsResolved extends ReporterOptions {
   scope: TestScope;
   customSections: CustomSections;
   bugTrackerBaseUrl?: string;
+  fastMode: boolean;
 }
 
 export type TestScopeResolved = Required<TestScope>;

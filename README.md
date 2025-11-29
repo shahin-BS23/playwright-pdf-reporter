@@ -47,7 +47,7 @@ export default defineConfig({
         theme: 'dark',
         includeScreenshots: true,
         includeHtml: true,
-        historicalDataPath: 'playwright-report/pdf/history.json',
+        historicalDataPath: 'playwright-report/pdf/history.json', // set to '' to disable trends
         reportType: 'full',
         trendLabel: 'Release Train',
         metadata: {
@@ -55,7 +55,9 @@ export default defineConfig({
           project: 'Checkout Platform',
           author: 'QA Guild',
           build: process.env.BUILD_ID
-        }
+        },
+        // Optional: trade detail for speed (no screenshots, no HTML artifact, no history I/O)
+        // fastMode: true
       }
     ]
   ]
@@ -83,13 +85,14 @@ Upon completion you’ll find:
 | `theme`              | `'light' \| 'dark'`  | `light`                     | Report theme                                                                |
 | `includeScreenshots` | `boolean`            | `true`                      | Embed screenshot attachments as inline base64 images                        |
 | `includeHtml`        | `boolean`            | `true`                      | Persist the intermediate HTML dashboard                                     |
-| `historicalDataPath` | `string`             | `playwright-report/pdf/history.json` | JSON file used to plot historical trends                         |
+| `historicalDataPath` | `string`             | `playwright-report/pdf/history.json` | JSON file used to plot historical trends; set to `''` or `undefined` to disable history I/O |
 | `reportType`         | `'summary' \| 'execution' \| 'defect' \| 'full'` | `full` | Controls sections included in the report                                    |
 | `metadata`           | `ReportMetadata`     | `{}`                        | Title, author, build, project, tags, etc.                                   |
 | `scope`              | `TestScope`          | defaults provided           | Objectives, datasets, criteria, risks, alignment                            |
 | `customSections`     | `CustomSections`     | defaults provided           | Challenges, lessons learned, recommendations                                |
 | `bugTrackerBaseUrl`  | `string`             | `undefined`                 | Prefix when auto-linking `#123` references in error stacks                  |
 | `trendLabel`         | `string`             | `Overall`                   | Label applied to trend charts                                               |
+| `fastMode`           | `boolean`            | `false`                     | When `true`, disables screenshots, HTML artifact, and history to speed up report generation |
 
 ### Steps & Retries Included
 

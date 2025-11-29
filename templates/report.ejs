@@ -71,6 +71,18 @@
         font-size: 12px;
         font-weight: 600;
       }
+      .theme-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--card-border);
+        background: transparent;
+        color: var(--text);
+        font-size: 12px;
+        cursor: pointer;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
@@ -167,7 +179,7 @@
         display: block;
       }
       .metrics-chart-wrapper {
-        padding: 0 100px;
+        padding: 0 40px;
         display: flex;
         justify-content: center;
         margin-top: 20px;
@@ -294,7 +306,15 @@
         <% } %>
       </div>
       <div style="text-align:right;">
-        <p class="muted">Executed <%= helpers.toDateTimeString(data.summary.startTime) %></p>
+        <button
+          type="button"
+          id="themeToggle"
+          class="theme-toggle"
+          aria-label="Toggle theme"
+        >
+          <span id="themeToggleLabel">Switch to <%= data.options.theme === 'dark' ? 'light' : 'dark' %> mode</span>
+        </button>
+        <p class="muted" style="margin-top:8px;">Executed <%= helpers.toDateTimeString(data.summary.startTime) %></p>
         <p class="muted">Duration <%= helpers.formatDuration(data.summary.durationMs) %></p>
         <% if (data.metadata.tags.length) { %>
           <div>
@@ -691,6 +711,39 @@
 
     <script>
       (() => {
+        // Theme toggle: remember preference while viewing the HTML report.
+        const applyTheme = (theme) => {
+          if (!theme) return;
+          document.body.setAttribute('data-theme', theme);
+          const label = document.getElementById('themeToggleLabel');
+          if (label) {
+            label.textContent = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
+          }
+        };
+
+        try {
+          const storedTheme = window.localStorage.getItem('pwPdfTheme');
+          if (storedTheme) {
+            applyTheme(storedTheme);
+          }
+        } catch {
+          // ignore storage errors (e.g. disabled cookies)
+        }
+
+        const toggleButton = document.getElementById('themeToggle');
+        if (toggleButton) {
+          toggleButton.addEventListener('click', () => {
+            const current = document.body.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            try {
+              window.localStorage.setItem('pwPdfTheme', next);
+            } catch {
+              // ignore storage errors
+            }
+          });
+        }
+
         const summary = <%- JSON.stringify(data.summary) %>;
         const metrics = <%- JSON.stringify(data.metrics) %>;
         const history = <%- JSON.stringify(data.history) %>;

@@ -31,7 +31,8 @@ export const htmlToPdf = async (
       },
       { title: metadata.title, author: metadata.author }
     );
-    await page.waitForTimeout(500);
+    // Give charts/layout a brief moment to settle without adding a large delay.
+    await page.waitForTimeout(100);
     await page.pdf({
       path: pdfPath,
       format: 'A4',
