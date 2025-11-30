@@ -13,7 +13,8 @@ const defaultOptions: ReporterOptionsResolved = {
   metadata: {},
   scope: {},
   customSections: {},
-  bugTrackerBaseUrl: undefined
+  bugTrackerBaseUrl: undefined,
+  fastMode: false
 };
 
 export const resolveOptions = (options?: ReporterOptions): ReporterOptionsResolved => {
@@ -35,9 +36,19 @@ export const resolveOptions = (options?: ReporterOptions): ReporterOptionsResolv
   };
 
   merged.outputDir = path.normalize(merged.outputDir || defaultOptions.outputDir);
-  if (merged.historicalDataPath) {
-    merged.historicalDataPath = path.normalize(merged.historicalDataPath);
+
+  const historyOptionProvided =
+    options && Object.prototype.hasOwnProperty.call(options, 'historicalDataPath');
+
+  if (historyOptionProvided) {
+    // Explicitly provided by the user:
+    // - non-empty string → normalize and use
+    // - empty string / undefined → disable history
+    merged.historicalDataPath = merged.historicalDataPath
+      ? path.normalize(merged.historicalDataPath)
+      : undefined;
   } else if (defaultOptions.historicalDataPath) {
+    // No value provided → fall back to default
     merged.historicalDataPath = path.normalize(defaultOptions.historicalDataPath);
   }
 
@@ -50,6 +61,14 @@ export const resolveOptions = (options?: ReporterOptions): ReporterOptionsResolv
   merged.includeScreenshots = merged.includeScreenshots ?? defaultOptions.includeScreenshots;
   merged.includeHtml = merged.includeHtml ?? defaultOptions.includeHtml;
   merged.trendLabel = merged.trendLabel ?? defaultOptions.trendLabel;
+  merged.fastMode = merged.fastMode ?? defaultOptions.fastMode;
+
+  if (merged.fastMode) {
+    // Fast mode trades some richness for speed.
+    merged.includeScreenshots = false;
+    merged.includeHtml = false;
+    merged.historicalDataPath = undefined;
+  }
 
   return merged;
 };
